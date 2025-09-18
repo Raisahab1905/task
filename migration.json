@@ -1,0 +1,3 @@
+{
+  "database": "cassandra://scylladb:9042/employee_db"
+}

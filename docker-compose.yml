@@ -1,0 +1,43 @@
+services:
+  scylladb:
+    image: scylladb/scylla:latest
+    container_name: salary-scylla
+    ports:
+      - "9042:9042"
+      - "9180:9180"
+    volumes:
+      - scylla_data:/var/lib/scylla
+      - ./init.cql:/docker-entrypoint-initdb.d/init.cql
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "DESCRIBE KEYSPACES"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+    command: ["--smp", "1", "--memory", "750M"]
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  salary-api:
+    build: .
+    image: salary-api:latest
+    depends_on:
+      scylladb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_REDIS_HOST: "redis"
+      SPRING_REDIS_PORT: "6379"
+    ports:
+      - "8080:8080"
+
+volumes:
+  scylla_data:
